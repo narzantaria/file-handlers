@@ -1,8 +1,37 @@
 {
   "name": "file-handlers",
   "version": "0.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "repository": "https://github.com/narzantaria/file-handlers.git",
   "author": "Nar Zantaria <narzantaria@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "lint": "npx eslint . --ext .js,.ts --fix",
+    "prettier": "npx prettier --write ."
+  },
+  "files": [
+    "dist",
+    "src",
+    "index.ts"
+  ],
+  "dependencies": {
+    "crypto-js": "^4.2.0",
+    "fs-extra": "^11.2.0",
+    "promiseman": "^0.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.1.1",
+    "@types/crypto-js": "^4.2.2",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.12.7",
+    "@typescript-eslint/parser": "^7.8.0",
+    "eslint": "^9.1.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-unused-imports": "^3.2.0",
+    "globals": "^15.1.0",
+    "prettier": "^3.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
 }
