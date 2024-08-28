@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getDirNames = exports.getFileNamesWithoutExtensions = exports.getFileNames = exports.rmDocDir = exports.docImages = exports.readJSON = exports.mkDirNotExists = exports.deleteFolderRecursive = exports.checkFolderExists = exports.checkFileExists = exports.uniqName = exports.makeId = exports.detachName = void 0;
+exports.getDirNames = exports.getFileNamesWithoutExtensions = exports.getFileNames = exports.readJSON = exports.mkDirNotExists = exports.deleteFolderRecursive = exports.checkFolderExists = exports.checkFileExists = exports.rmDocDir = exports.makeDocDir = exports.uniqName = exports.makeId = exports.detachName = void 0;
 const path_1 = __importDefault(require("path"));
 const promiseman_1 = require("promiseman");
 const crypto_js_1 = __importDefault(require("crypto-js"));
@@ -36,6 +36,89 @@ const uniqName = () => {
     return `${newId}-${prefix}`;
 };
 exports.uniqName = uniqName;
+const makeDocDir = async (root = "dist") => {
+    try {
+        const ROOT_DIR = `${process.cwd()}/${root}`;
+        const imagesFolderName = (0, exports.uniqName)();
+        const subDir = imagesFolderName.slice(0, 2).toLowerCase();
+        const dir = `${ROOT_DIR}/${subDir}/${imagesFolderName}`;
+        await (0, promiseman_1.mkdir)(`${ROOT_DIR}/${subDir}`);
+        await (0, promiseman_1.mkdir)(dir);
+        return `${subDir}/${imagesFolderName}`;
+    }
+    catch (error) {
+        console.log(error);
+    }
+};
+exports.makeDocDir = makeDocDir;
+// Чистит папку, удаляет все что внутри (и файлы и папки), оставляя саму папку.
+async function clearDir(dir) {
+    try {
+        const files = await (0, promiseman_1.readdir)(dir, { withFileTypes: true });
+        const filteredFiles = files
+            .filter((dirent) => dirent.isFile())
+            .map((dirent) => dirent.name);
+        const filteredDirs = files
+            .filter((dirent) => dirent.isDirectory())
+            .map((dirent) => dirent.name);
+        if (filteredFiles.length > 0) {
+            for (let x = 0; x < filteredFiles.length; x++) {
+                const fileToRemove = dir + "/" + filteredFiles[x];
+                await (0, promiseman_1.unlink)(fileToRemove);
+            }
+        }
+        if (filteredDirs.length > 0) {
+            for (let x = 0; x < filteredDirs.length; x++) {
+                const fileToRemove = dir + "/" + filteredDirs[x];
+                await (0, promiseman_1.rmdir)(fileToRemove);
+            }
+        }
+    }
+    catch (error) {
+        console.log(`Cleardir error: ${error}`);
+    }
+}
+/*
+Очень интересная функция! Принимает путь типа fj/fje967VEEEqsups5Lxi5-487f7b22f68312d2c1bbc93b1aea445b
+Удаляет папку (что после /), не удаляя 'fj', если в последней есть другие папки!
+В противном случае, удаляет и папку 'fj'
+*/
+const rmDocDir = async (dir, root = "dist") => {
+    // Проверка, чтобы вдруг не удалили всю папку "dist"
+    if (!dir.length) {
+        console.log("The dir argument should be not empty!");
+        return;
+    }
+    else if (dir.slice(-4) === "dist") {
+        console.log("Invalid dir argument!");
+        return;
+    }
+    const ROOT_DIR = `${process.cwd()}/${root}`;
+    const DOC_DIR = `${ROOT_DIR}/${dir}`;
+    try {
+        await clearDir(DOC_DIR);
+        const parent = dir.slice(0, 2);
+        const PARENT_DIR = `${ROOT_DIR}/${parent}`;
+        const filesRaw = await (0, promiseman_1.readdir)(PARENT_DIR, {
+            withFileTypes: true,
+        });
+        const filtered = filesRaw
+            .filter((dirent) => dirent.isDirectory())
+            .map((dirent) => dirent.name);
+        if (filtered.length > 1) {
+            await (0, promiseman_1.rmdir)(DOC_DIR);
+        }
+        else {
+            await (0, promiseman_1.rmdir)(DOC_DIR);
+            await (0, promiseman_1.rmdir)(PARENT_DIR);
+        }
+        return "Removed";
+    }
+    catch (error) {
+        console.log(`Smartremove error: ${error}`);
+    }
+};
+exports.rmDocDir = rmDocDir;
 // check if the model file exists
 async function checkFileExists(fullPath) {
     try {
@@ -58,6 +141,7 @@ async function checkFolderExists(dir) {
     }
 }
 exports.checkFolderExists = checkFolderExists;
+// Delete directory and all it's content recursively
 async function deleteFolderRecursive(folderPath) {
     let files = [];
     try {
@@ -120,113 +204,6 @@ async function readJSON(arg) {
     }
 }
 exports.readJSON = readJSON;
-// СТАРАЯ ФУНКЦИЯ, НАДО УБРАТЬ!!!
-const docImages = async (root = "dist", userdir) => {
-    // Проверка, чтобы вдруг не удалили всю папку "dist"
-    if (!userdir.length) {
-        console.log("The userdir argument should be not empty!");
-        return;
-    }
-    else if (userdir.slice(-4) === "dist") {
-        console.log("Invalid userdir argument!");
-        return;
-    }
-    const ROOT_DIR = `${process.cwd()}/${root}`;
-    try {
-        const imagesFolderName = (0, exports.uniqName)();
-        const files = await (0, promiseman_1.readdir)(`${ROOT_DIR}/${userdir}`, {
-            withFileTypes: true,
-        });
-        const fileNames = files.map((dirent) => dirent.name);
-        const subDir = imagesFolderName.slice(0, 2).toLowerCase();
-        const checkSubDir = await (0, promiseman_1.readdir)(ROOT_DIR, { withFileTypes: true });
-        const checkSubDir2 = checkSubDir
-            .filter((dirent) => dirent.isDirectory())
-            .map((dirent) => dirent.name)
-            .some((x) => x == subDir);
-        if (!checkSubDir2) {
-            await (0, promiseman_1.mkdir)(`${ROOT_DIR}/${subDir}`);
-        }
-        await (0, promiseman_1.mkdir)(`${ROOT_DIR}/${subDir}/${imagesFolderName}`);
-        for (let x = 0; x < fileNames.length; x++) {
-            await (0, promiseman_1.rename)(`${ROOT_DIR}/${userdir}/${fileNames[x]}`, `${ROOT_DIR}/${subDir}/${imagesFolderName}/${fileNames[x]}`);
-        }
-        // НОВОЕ!!! УДАЛЯЕМ ВРЕМЕННУЮ ПАПКУ!!! ЭТО ТОЧНО МОЖНО???
-        await (0, promiseman_1.rmdir)(`${ROOT_DIR}/${userdir}`);
-        return `${subDir}/${imagesFolderName}`;
-    }
-    catch (error) {
-        console.log(error);
-    }
-};
-exports.docImages = docImages;
-// Чистит папку, удаляет все что внутри (и файлы и папки), оставляя саму папку.
-async function clearDir(dir, root = "dist") {
-    const ROOT_DIR = `${process.cwd()}/${root}`;
-    try {
-        const files = await (0, promiseman_1.readdir)(ROOT_DIR + "/" + dir, { withFileTypes: true });
-        const filteredFiles = files
-            .filter((dirent) => dirent.isFile())
-            .map((dirent) => dirent.name);
-        const filteredDirs = files
-            .filter((dirent) => dirent.isDirectory())
-            .map((dirent) => dirent.name);
-        if (filteredFiles.length > 0) {
-            for (let x = 0; x < filteredFiles.length; x++) {
-                const fileToRemove = ROOT_DIR + "/" + dir + "/" + filteredFiles[x];
-                await (0, promiseman_1.unlink)(fileToRemove);
-            }
-        }
-        if (filteredDirs.length > 0) {
-            for (let x = 0; x < filteredDirs.length; x++) {
-                const fileToRemove = ROOT_DIR + "/" + dir + "/" + filteredDirs[x];
-                await (0, promiseman_1.rmdir)(fileToRemove);
-            }
-        }
-    }
-    catch (error) {
-        console.log(`Cleardir error: ${error}`);
-    }
-}
-/*
-Очень интересная функция! Принимает путь типа fj/fje967VEEEqsups5Lxi5-487f7b22f68312d2c1bbc93b1aea445b
-Удаляет папку (что после /), не удаляя 'fj', если в последней есть другие папки!
-В противном случае, удаляет и папку 'fj'
-*/
-const rmDocDir = async (dir, root = "dist") => {
-    // Проверка, чтобы вдруг не удалили всю папку "dist"
-    if (!dir.length) {
-        console.log("The dir argument should be not empty!");
-        return;
-    }
-    else if (dir.slice(-4) === "dist") {
-        console.log("Invalid dir argument!");
-        return;
-    }
-    const ROOT_DIR = `${process.cwd()}/${root}`;
-    try {
-        await clearDir(dir);
-        const parent = dir.slice(0, 2);
-        const filesRaw = await (0, promiseman_1.readdir)(`${ROOT_DIR}/${parent}`, {
-            withFileTypes: true,
-        });
-        const filtered = filesRaw
-            .filter((dirent) => dirent.isDirectory())
-            .map((dirent) => dirent.name);
-        if (filtered.length > 1) {
-            await (0, promiseman_1.rmdir)(`${ROOT_DIR}/${dir}`);
-        }
-        else {
-            await (0, promiseman_1.rmdir)(`${ROOT_DIR}/${dir}`);
-            await (0, promiseman_1.rmdir)(`${ROOT_DIR}/${parent}`);
-        }
-        return "Removed";
-    }
-    catch (error) {
-        console.log(`Smartremove error: ${error}`);
-    }
-};
-exports.rmDocDir = rmDocDir;
 // Read all files in directory and subdirectories recursively and return names (not paths)
 async function getFileNames(dir) {
     let files = [];
