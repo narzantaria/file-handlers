@@ -1,6 +1,6 @@
 {
   "name": "file-handlers",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "main": "dist/index.js",
   "repository": "https://github.com/narzantaria/file-handlers.git",
   "author": "Nar Zantaria <narzantaria@gmail.com>",
